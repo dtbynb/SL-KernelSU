@@ -1,0 +1,100 @@
+# SL-KernelSU 内核模块（LKM）构建线：GitHub Actions + DDK
+#
+# 为什么必须自编内核模块：见 docs/adr/0009-manager-signature-trust.md
+#   - 官方内核只信任官方管理器的证书指纹 → 我们的自签管理器必须配套"注入我们指纹"的 kernelsu.ko
+#   - 注入项（上游 Kbuild 原生支持，无需改内核源码）：
+#       KSU_EXPECTED_SIZE / KSU_EXPECTED_HASH = 我们的自签证书（RSA 2048，784 字节 / 0x0310）
+#       KSU_MANAGER_PACKAGE                   = com.slksu.dtby（管理器识别同时钉死在包名上）
+#   - KSU_VERSION 由上游 Kbuild 按 git 提交数算：30000 + 提交数 → 对齐到 32602，与管理器 versionCode 一致
+#
+# 流程裁剪自上游 .github/workflows/ddk-lkm.yml（只做 aarch64；x86_64 本轮不需要）
+name: Build LKM
+
+on:
+  workflow_dispatch:
+    inputs:
+      kmi:
+        description: '目标 KMI（Tier A：android15-6.6 已真机验证；其余为 Tier B 实验性）'
+        required: true
+        default: 'android15-6.6'
+        type: choice
+        options:
+          - android12-5.10
+          - android13-5.10
+          - android13-5.15
+          - android14-5.15
+          - android14-6.1
+          - android15-6.6
+          - android16-6.12
+          - android17-6.18
+      ddk_release:
+        description: 'DDK 镜像日期'
+        required: true
+        default: '20260828'
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  UPSTREAM_REPO: https://github.com/tiann/KernelSU
+  UPSTREAM_TAG: v3.3.0          # 已核验：官方最新发布（versionCode 32601）
+  SRC_DIR: /github/workspace/src
+  OUT_DIR: /github/workspace/out
+  # 自签管理器证书指纹（ADR-0009）
+  KSU_EXPECTED_SIZE: '0x0310'
+  KSU_EXPECTED_HASH: 'b78f4c9d27d3758ebf81ee6ad93caecd474400a36aefe1e78befb98c97dd3ebc'
+  KSU_MANAGER_PACKAGE: 'com.slksu.dtby'
+  # 必须等于管理器 versionCode（不一致时管理器首页会提示版本不匹配）
+  TARGET_KSU_VERSION: '32602'
+
+jobs:
+  build-lkm:
+    name: ${{ inputs.kmi }}
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ylarod/ddk-min:${{ inputs.kmi }}-${{ inputs.ddk_release }}
+      options: --privileged
+    steps:
+      - name: 取上游源码并打版本锚点
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$SRC_DIR"
+          git clone --branch "$UPSTREAM_TAG" "$UPSTREAM_REPO" "$SRC_DIR"
+          cd "$SRC_DIR"
+          git config user.name "SL-KernelSU CI"
+          git config user.email "ci@slksu.local"
+          have=$(git rev-list --count HEAD)
+          want=$((TARGET_KSU_VERSION - 30000))
+          echo "上游提交数=$have，目标提交数=$want"
+          test "$have" -le "$want" || { echo '上游提交数已超过目标：需上调 TARGET_KSU_VERSION（并同步管理器版本号）'; exit 1; }
+          for i in $(seq 1 $((want - have))); do
+            git commit --allow-empty -m "SL-KernelSU: 版本锚点（对齐管理器 versionCode）"
+          done
+          echo "对齐后提交数=$(git rev-list --count HEAD)"
+
+      - name: 编译 kernelsu.ko 并注入指纹
+        run: |
+          set -euo pipefail
+          cd "$SRC_DIR/kernel"
+          CONFIG_KSU=m CC=clang make \
+            KSU_EXPECTED_SIZE="$KSU_EXPECTED_SIZE" \
+            KSU_EXPECTED_HASH="$KSU_EXPECTED_HASH" \
+            KSU_MANAGER_PACKAGE="$KSU_MANAGER_PACKAGE" 2>&1 | tee /tmp/build.log
+          # 断言：注入项与版本必须与预期完全一致（不允许静默出一个错的 .ko）
+          grep -q "KernelSU version: $TARGET_KSU_VERSION" /tmp/build.log
+          grep -q "Manager signature size: $KSU_EXPECTED_SIZE" /tmp/build.log
+          grep -q "Manager signature hash: $KSU_EXPECTED_HASH" /tmp/build.log
+          grep -q "Manager package name: $KSU_MANAGER_PACKAGE" /tmp/build.log
+          mkdir -p "$OUT_DIR"
+          cp kernelsu.ko "$OUT_DIR/${{ inputs.kmi }}_kernelsu.ko"
+          llvm-strip -d "$OUT_DIR/${{ inputs.kmi }}_kernelsu.ko"
+          ls -l "$OUT_DIR"
+          sha256sum "$OUT_DIR/${{ inputs.kmi }}_kernelsu.ko"
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v7
+        with:
+          name: slksu-lkm-${{ inputs.kmi }}
+          path: /github/workspace/out/${{ inputs.kmi }}_kernelsu.ko
+          if-no-files-found: error

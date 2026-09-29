@@ -1,11 +1,34 @@
-.idea
-.vscode
-CLAUDE.md
-AGENTS.md
+# Gradle / Android
+.gradle/
+build/
+out/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# 产物与密钥（严禁入库）
+*.apk
+*.aab
+*.jks
+*.keystore
+keystore.properties
+*.so
+*.ko
+
+# 系统
 .DS_Store
-/target
-.cargo/config.toml
-__pycache__
-/dist
-/repack-config.json
-/userspace/ksud/.lkm_image_bootstrap.o
+Thumbs.db
+*.log
+
+# 第三方源码与归档（不纳入版本管理）
+# upstream/  官方 KernelSU 源码快照（基线，按需重新获取）
+# reference/ 参考项目归档（只读参考，禁止复制其代码进本仓库）
+upstream/
+reference/
+*.zip
+
+# 构建产物
+dist/
