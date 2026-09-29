@@ -1,4 +1,4 @@
-# SL-KernelSU 补丁清单：在构建树内对上游代码做最小改动
+﻿# SL-KernelSU 补丁清单：在构建树内对上游代码做最小改动
 #
 # 设计原则：
 #   - 每条补丁 = 「文件 + 原文 + 新文」，应用后断言成功；上游一旦变更会**显式报错**，不会静默失效
@@ -128,6 +128,36 @@ $Patches = @(
     File = $KsuCli
     Old  = $DownloadBootOld
     New  = $DownloadBootNew
+  },
+  @{
+    Note = '（皮肤）默认开启模糊（玻璃拟态观感）'
+    File = 'app\src\main\java\me\weishu\kernelsu\data\repository\SettingsRepositoryImpl.kt'
+    Old  = 'get() = prefs.getBoolean("enable_blur", false)'
+    New  = 'get() = prefs.getBoolean("enable_blur", true)  // SL-KernelSU: 默认开启模糊'
+  },
+  @{
+    Note = '（皮肤）默认开启悬浮底栏'
+    File = 'app\src\main\java\me\weishu\kernelsu\data\repository\SettingsRepositoryImpl.kt'
+    Old  = 'get() = prefs.getBoolean("enable_floating_bottom_bar", false)'
+    New  = 'get() = prefs.getBoolean("enable_floating_bottom_bar", true)  // SL-KernelSU: 默认悬浮底栏'
+  },
+  @{
+    Note = '（皮肤）默认开启悬浮底栏毛玻璃'
+    File = 'app\src\main\java\me\weishu\kernelsu\data\repository\SettingsRepositoryImpl.kt'
+    Old  = 'get() = prefs.getBoolean("enable_floating_bottom_bar_blur", false)'
+    New  = 'get() = prefs.getBoolean("enable_floating_bottom_bar_blur", true)  // SL-KernelSU: 默认底栏毛玻璃'
+  },
+  @{
+    Note = '（皮肤）配色板置顶「水色（默认）/ 樱粉柔光」两个皮肤色'
+    File = 'app\src\main\java\me\weishu\kernelsu\ui\theme\Colors.kt'
+    Old  = 'val keyColorOptions = listOf('
+    New  = "val keyColorOptions = listOf(`n    // SL-KernelSU 皮肤色：水色（默认）/ 樱粉柔光`n    Color(0xFF2E9BD6).toArgb(),`n    Color(0xFFFF9CA8).toArgb(),"
+  },
+  @{
+    Note = '（皮肤）首次运行自动套用「水色玻璃拟态」皮肤（SlSkin.applyDefaultOnce）'
+    File = 'app\src\main\java\me\weishu\kernelsu\ui\theme\Theme.kt'
+    Old  = "        val colorMode = ColorMode.fromValue(colorModeValue)`n        val keyColor = repo.keyColor"
+    New  = "        // SL-KernelSU: 首次运行套用默认皮肤「水色玻璃拟态」（仅一次，之后尊重用户设置）`n        SlSkin.applyDefaultOnce()`n`n        val colorMode = ColorMode.fromValue(colorModeValue)`n        val keyColor = repo.keyColor"
   }
 )
 

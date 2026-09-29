@@ -18,7 +18,7 @@ param(
   [string]$BuildDir    = 'E:\slksu-build',
   [string]$PackageName = 'com.slksu.dtby',
   [string]$AppName     = 'SL-KernelSU',
-  [string]$VersionTag  = 'v0.0.5-alpha',
+  [string]$VersionTag  = 'v0.0.6-alpha',
   [int]$VersionCode    = 32602   # 基准：官方 v3.3.0 为 32601；我们的版本号取基准+1，保证不被判为降级
 )
 
@@ -84,6 +84,18 @@ if (Test-Path $prebuilt) {
   Get-ChildItem $prebuilt -Filter '*_kernelsu.ko' | ForEach-Object {
     Copy-Item $_.FullName (Join-Path $assetsSlksu $_.Name) -Force
     Write-Host "  内置 LKM: $($_.Name)"
+  }
+}
+
+# 1.7) 源码覆盖层：manager/overlay/** → app/src/main/java/**（新增文件用覆盖层，修改用补丁，见 ADR-0010）
+$overlay = Join-Path $Repo 'manager\overlay'
+if (Test-Path $overlay) {
+  Get-ChildItem $overlay -Recurse -File | ForEach-Object {
+    $rel = $_.FullName.Substring($overlay.Length).TrimStart('\')
+    $dst = Join-Path $manager ("app\src\main\java\" + $rel)
+    New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
+    Copy-Item $_.FullName $dst -Force
+    Write-Host "  覆盖层: $rel"
   }
 }
 
