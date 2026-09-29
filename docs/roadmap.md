@@ -4,13 +4,14 @@
 
 ## 里程碑
 
-### M0 骨架（进行中）
+### M0 骨架（已完成 ✅ 2026-09-29）
 - 本地骨架、ADR、roadmap、CI 骨架、主题 token 层 ✅
 - 官方 KernelSU 源码就位（`upstream/`）✅ / 参考项目归档（`reference/`）✅
 - Git 就位 + 本地仓库首次提交 ✅
-- 待办：工具链（Android SDK/NDK、Rust）
-- 门禁：真机 Go/No-Go 冒烟（官方 KSU 的 LKM）
-- Go 通过后：改包名 `com.slksu.dtby` → 激活 CI
+- 工具链（JDK 21 / Android SDK / NDK / 自签密钥库）✅
+- **Go/No-Go 门禁通过 ✅**：真机 `6.6.118-android15-8` 上由自编内核模块（注入自签证书指纹）接管 root；
+  管理器 v0.0.5 内置 `.ko`，实现与其他分支一致的「直接安装 → 下一步」
+- 待办：把上游源码正式并入仓库（形成完整 fork 结构）、多 KMI 构建矩阵
 
 ### M1 技术支点验证（注入点已核验，见 ADR-0008）
 - A1 原型：两段式自动失败判定（启动标记 + 阈值禁用 + 下一轮 preinit rc 兜底）

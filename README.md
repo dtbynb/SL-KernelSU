@@ -8,12 +8,12 @@
 
 ## 当前状态
 
-- 阶段：**M0 骨架 + 上游源码就位 + 构建线就绪**（管理器 APK 可出包；内核模块走 CI）
+- 阶段：**M0 完成 ✅（真机 Go 门禁通过）→ 进入优化线**
 - 基线：官方 KernelSU **v3.3.0**（官方最新发布，versionCode 32601；源码快照 `upstream/KernelSU-3.3.0/`，见 ADR-0001）
 - 参考项目：7kimisu（`reference/7kimisu-main/`，仅阅读，见 ADR-0007）
 - 包名：`com.slksu.dtby`（已冻结，见 ADR-0005）
-- 本机验证目标：`6.6.118-android15-8`（KMI `android15-6.6`）
-- 管理器：**v0.0.4-alpha**（versionCode **32602**，自签 RSA 2048 证书）
+- 本机验证目标：`6.6.118-android15-8`（KMI `android15-6.6`）——**已由自编内核模块接管 root ✅**
+- 管理器：**v0.0.5-alpha**（versionCode **32602**，自签 RSA 2048 证书；**内置内核模块**，一键「直接安装」）
 - 内核模块：GitHub Actions + DDK 编译（`.github/workflows/lkm.yml`），编译时注入我们的证书指纹（ADR-0009 / ADR-0011）
 
 ## Go / No-Go 门禁
@@ -53,8 +53,11 @@ powershell -ExecutionPolicy Bypass -File scripts\setup-toolchain.ps1
 powershell -ExecutionPolicy Bypass -File scripts\build-manager.ps1
 ```
 
-当前版本：`com.slksu.dtby` / `SL-KernelSU` / `v0.0.4-alpha`（versionCode **32602**）。
-最新产物：`dist/SL-KernelSU_v0.0.4-alpha_32602-release.apk`（10.3 MB，arm64-v8a + x86_64）。
+当前版本：`com.slksu.dtby` / `SL-KernelSU` / `v0.0.5-alpha`（versionCode **32602**）。
+最新产物：`dist/SL-KernelSU_v0.0.5-alpha_32602-release.apk`（10.4 MB，arm64-v8a + x86_64；**已内置 `assets/slksu/android15-6.6_kernelsu.ko`**）。
+
+> 内置模块来源：`manager/prebuilt/*_kernelsu.ko`（由 CI 产出），构建时复制进 APK 的 `assets/slksu/`；
+> 安装流程在未手动选择 `.ko` 时默认使用内置模块（见补丁清单），因此「直接安装 → 下一步」即可完成刷入。
 
 > v0.0.1–v0.0.3 由旧密钥（RSA 4096）签名，其证书 1332 字节**超过内核 1024 字节上限**，已全部废弃（见 ADR-0009 复核补记）。
 

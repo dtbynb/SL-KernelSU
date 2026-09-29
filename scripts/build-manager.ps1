@@ -8,6 +8,7 @@
 #   5) 必须设置 ANDROID_HOME（仅 local.properties 不够，实测 AGP 读不到）
 #   6) libksud.so 目前取自官方发布版 APK（M1 起改为用 Rust 从源码编译，见 docs/roadmap.md）
 #   7) 签名密钥库必须 RSA 2048（证书 784B/0x0310，需 ≤1024；指纹见 ADR-0009，内核模块编译时注入同一指纹）
+#   8) APK 内置我们的内核模块（manager/prebuilt/*_kernelsu.ko → assets/slksu/），使「直接安装」开箱即用
 #
 # 用法：先跑 scripts/setup-toolchain.ps1，再运行本脚本
 param(
@@ -17,7 +18,7 @@ param(
   [string]$BuildDir    = 'E:\slksu-build',
   [string]$PackageName = 'com.slksu.dtby',
   [string]$AppName     = 'SL-KernelSU',
-  [string]$VersionTag  = 'v0.0.4-alpha',
+  [string]$VersionTag  = 'v0.0.5-alpha',
   [int]$VersionCode    = 32602   # 基准：官方 v3.3.0 为 32601；我们的版本号取基准+1，保证不被判为降级
 )
 
@@ -70,10 +71,21 @@ Copy-Item (Join-Path $BuildDir 'uapi') $cppUapi -Recurse -Force
 Set-Content (Join-Path $manager 'local.properties') ("sdk.dir=" + ($Sdk -replace '\\', '/'))
 Add-Content (Join-Path $manager 'gradle.properties') "`nandroid.overridePathCheck=true"
 
-# 1.5) 应用我们的补丁（更新源 / 默认主题色）
+# 1.5) 应用我们的补丁（更新源 / 默认主题色 / 内置内核模块）
 Write-Host '[1.5/4] 应用补丁 ...'
 & (Join-Path $Repo 'scripts\apply-patches.ps1') -ManagerDir $manager
 if (-not $?) { throw '补丁脚本失败，构建中止' }
+
+# 1.6) 内置内核模块：manager/prebuilt/*_kernelsu.ko → app/src/main/assets/slksu/
+$prebuilt = Join-Path $Repo 'manager\prebuilt'
+if (Test-Path $prebuilt) {
+  $assetsSlksu = Join-Path $manager 'app\src\main\assets\slksu'
+  New-Item -ItemType Directory -Force -Path $assetsSlksu | Out-Null
+  Get-ChildItem $prebuilt -Filter '*_kernelsu.ko' | ForEach-Object {
+    Copy-Item $_.FullName (Join-Path $assetsSlksu $_.Name) -Force
+    Write-Host "  内置 LKM: $($_.Name)"
+  }
+}
 
 # 2) 构建树内初始化 git（versionName / versionCode 来源）
 Write-Host '[2/4] 初始化构建树 git ...'
