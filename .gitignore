@@ -17,6 +17,8 @@ captures/
 keystore.properties
 *.so
 *.ko
+# 例外：我方预置内核模块属于构建输入，必须入库（由 CI 产出后放入 manager/prebuilt/）
+!manager/prebuilt/*.ko
 
 # 系统
 .DS_Store
