@@ -92,6 +92,55 @@ $DownloadBootNew = @'
     if (autoKmi != null) cmd += " --kmi $autoKmi"
 '@
 
+# —— 壁纸：主题包一层壁纸透光层 ——
+$ThemeWallpaperOld = @'
+    when (uiMode) {
+        UiMode.Miuix -> MiuixKernelSUTheme(
+            appSettings = appSettings,
+            content = content
+        )
+
+        UiMode.Material -> MaterialKernelSUTheme(
+            appSettings = appSettings,
+            content = content
+        )
+    }
+}
+'@
+
+$ThemeWallpaperNew = @'
+    // SL-KernelSU: 应用内背景壁纸（透光层，画在全部页面之上）
+    SlWallpaper {
+        when (uiMode) {
+            UiMode.Miuix -> MiuixKernelSUTheme(
+                appSettings = appSettings,
+                content = content
+            )
+
+            UiMode.Material -> MaterialKernelSUTheme(
+                appSettings = appSettings,
+                content = content
+            )
+        }
+    }
+}
+'@
+
+# —— 壁纸：设置页（Miuix）新增一行 ——
+$SettingsMiuixRowOld = @'
+                            onClick = actions.onOpenTheme
+                        )
+                    }
+'@
+
+$SettingsMiuixRowNew = @'
+                            onClick = actions.onOpenTheme
+                        )
+                        // SL-KernelSU: 应用内背景壁纸设置
+                        me.weishu.kernelsu.ui.theme.SlWallpaperSettingRow()
+                    }
+'@
+
 $Patches = @(
   @{
     Note = '更新检查指向自建更新源（尚未发布仓库 => 不再误报“有新版本”）'
@@ -158,6 +207,18 @@ $Patches = @(
     File = 'app\src\main\java\me\weishu\kernelsu\ui\theme\Theme.kt'
     Old  = "        val colorMode = ColorMode.fromValue(colorModeValue)`n        val keyColor = repo.keyColor"
     New  = "        // SL-KernelSU: 首次运行套用默认皮肤「水色玻璃拟态」（仅一次，之后尊重用户设置）`n        SlSkin.applyDefaultOnce()`n`n        val colorMode = ColorMode.fromValue(colorModeValue)`n        val keyColor = repo.keyColor"
+  },
+  @{
+    Note = '（壁纸）主题包一层壁纸透光层（SlWallpaper）'
+    File = 'app\src\main\java\me\weishu\kernelsu\ui\theme\Theme.kt'
+    Old  = $ThemeWallpaperOld
+    New  = $ThemeWallpaperNew
+  },
+  @{
+    Note = '（壁纸）设置页（Miuix）新增「壁纸」行（含选择对话框）'
+    File = 'app\src\main\java\me\weishu\kernelsu\ui\screen\settings\SettingsMiuix.kt'
+    Old  = $SettingsMiuixRowOld
+    New  = $SettingsMiuixRowNew
   }
 )
 

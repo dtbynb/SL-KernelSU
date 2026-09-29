@@ -18,7 +18,7 @@ param(
   [string]$BuildDir    = 'E:\slksu-build',
   [string]$PackageName = 'com.slksu.dtby',
   [string]$AppName     = 'SL-KernelSU',
-  [string]$VersionTag  = 'v0.0.6-alpha',
+  [string]$VersionTag  = 'v0.0.7-alpha',
   [int]$VersionCode    = 32602   # 基准：官方 v3.3.0 为 32601；我们的版本号取基准+1，保证不被判为降级
 )
 
@@ -96,6 +96,18 @@ if (Test-Path $overlay) {
     New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
     Copy-Item $_.FullName $dst -Force
     Write-Host "  覆盖层: $rel"
+  }
+}
+
+# 1.8) 资源覆盖层：manager/assets/** → app/src/main/assets/**（内置壁纸等）
+$assetsSrc = Join-Path $Repo 'manager\assets'
+if (Test-Path $assetsSrc) {
+  Get-ChildItem $assetsSrc -Recurse -File | ForEach-Object {
+    $rel = $_.FullName.Substring($assetsSrc.Length).TrimStart('\')
+    $dst = Join-Path $manager ("app\src\main\assets\" + $rel)
+    New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
+    Copy-Item $_.FullName $dst -Force
+    Write-Host "  资源: $rel"
   }
 }
 
