@@ -219,6 +219,21 @@ $Patches = @(
     File = 'app\src\main\java\me\weishu\kernelsu\ui\screen\settings\SettingsMiuix.kt'
     Old  = $SettingsMiuixRowOld
     New  = $SettingsMiuixRowNew
+  },
+  @{
+    Note = '（批量管理）模块页顶栏新增「批量管理」按钮'
+    File = 'app\src\main\java\me\weishu\kernelsu\ui\screen\module\ModuleMiuix.kt'
+    Old  = @'
+                        actions = {
+                            Box {
+                                val showTopPopup = remember { mutableStateOf(false) }
+'@
+    New  = @'
+                        actions = {
+                            SlModuleBulkButton()
+                            Box {
+                                val showTopPopup = remember { mutableStateOf(false) }
+'@
   }
 )
 
